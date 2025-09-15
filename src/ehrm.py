@@ -31,7 +31,7 @@ class EHRM:
 			
 	def run(self):
 		#Runs the program
-		#Each instruction's value is given below:
+		#Each instruction's name is given below:
 		#		0				1				2				3
 		#		...				ADD 1			ADD 2			ADD 3
 		#		4				5				6				7
@@ -45,6 +45,7 @@ class EHRM:
 		mem_pointer = 0
 		prev_mem_pointer = -1
 		input_mode = "2B"
+		while_stack = []
 		
 		while (code_pointer < len(self.script)):
 			instruction = self.script[code_pointer]
@@ -52,7 +53,7 @@ class EHRM:
 			if (instruction in "123"):
 				#ADD 1,2,3
 				#Converts the instruction into an int to add to the current memory
-				val = self.get_mem( mem_pointer ) + int(instruction)
+				val = self.get_mem( mem_pointer ) + int(instruction, 16)
 				self.set_mem(mem_pointer, val)
 				
 			if (instruction == "4"):
@@ -75,22 +76,45 @@ class EHRM:
 				#Uses the two variables to achieve the swap
 				mem_pointer, prev_mem_pointer = prev_mem_pointer, mem_pointer
 				
-			#...
+			if (instruction in "89AB"):
+				#WHILE 0,1,2,3
+				#Gets the while value by converting to hexadecimal and subtracting 8 and the current memory value
+				while_val = int(instruction, 16) - 8
+				cur_val = self.get_mem( mem_pointer )
+				
+				if (cur_val != while_val):
+					#Finds the ENDWHILE block if the two values are not equal
+					while (self.script[code_pointer] != "C"):
+						code_pointer += 1
+				else:
+					#Adds the starting position and value to check to the stack
+					while_stack.append( [code_pointer, while_val] )
+					
+			if (instruction == "C"):
+				#ENDWHILE
+				#Jumps back to start if memory value is equal to while_value
+				cur_val = self.get_mem( mem_pointer )
+				
+				if (cur_val == while_stack[-1][1]):
+					#If current value is equal to while value, jump back to code pointer
+					code_pointer = while_stack[-1][0]
+				else:
+					while_stack.pop()
 			
 			if (instruction == "D"):
 				#INPUT
 				#Checks which mode I/O is in and does input accordingly
 				if (input_mode == "2B"):
 					#2 Bit Input
-					input_val = int(input("> ")) % self.INSTRUCTION_LENGTH
-					self.set_mem(mem_pointer, input_val)
+					input_val = int( input("> ") ) % self.INSTRUCTION_LENGTH
+					self.set_mem( mem_pointer, input_val )
 					
 			if (instruction == "E"):
 				#OUTPUT
 				#Checks which mode I/O is in and does output accordingly
 				if (input_mode == "2B"):
 					#2 Bit Output
-					output_val = self.get_mem(mem_pointer)
+					output_val = self.get_mem( mem_pointer )
 					print(output_val, end="")
 				
 			if (instruction == "?"):
@@ -98,6 +122,8 @@ class EHRM:
 				self.pprint()
 			
 			code_pointer += 1
+			
+		print()
 			
 	def pprint(self):
 		print(f"MEM: [{self.mem}]\nRAM: {self.ram[:10]}")
