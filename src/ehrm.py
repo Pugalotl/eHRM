@@ -33,50 +33,56 @@ class EHRM:
 		#Runs the program
 		#Each instruction's name is given below:
 		#		0				1				2				3
-		#		...				ADD 1			ADD 2			ADD 3
+		#		I/O MODE		ADD 1			ADD 2			ADD 3
 		#		4				5				6				7
 		#		SEL 0			SEL -1			SEL +1			SEL RAM/MEM
 		#		8				9				A				B
 		#		WHILE 0			WHILE 1			WHILE 2			WHILE 3
 		#		C				D				E				F
-		#		ENDWHILE		INPUT			OUTPUT			...
+		#		ENDWHILE		INPUT			OUTPUT			END PROGRAM
 		
 		code_pointer = 0
 		mem_pointer = 0
 		prev_mem_pointer = -1
 		input_mode = "2B"
 		while_stack = []
+		chars = []
+		chars_output = []
 		
 		while (code_pointer < len(self.script)):
 			instruction = self.script[code_pointer]
 			
-			if (instruction in "123"):
+			if (instruction == "0"):
+				#I/O MODE
+				input_mode = "ASCII" if input_mode == "2B" else "2B"
+			
+			elif (instruction in "123"):
 				#ADD 1,2,3
 				#Converts the instruction into an int to add to the current memory
 				val = self.get_mem( mem_pointer ) + int(instruction, 16)
 				self.set_mem(mem_pointer, val)
 				
-			if (instruction == "4"):
+			elif (instruction == "4"):
 				#SEL 0
 				mem_pointer = 0
 				
-			if (instruction == "5"):
+			elif (instruction == "5"):
 				#SEL -1
 				#Makes sure memory does not wrap around
 				mem_pointer = max(0, mem_pointer - 1)
 				
-			if (instruction == "6"):
+			elif (instruction == "6"):
 				#SEL +1
 				#Makes sure memory does not wrap around
 				mem_pointer = min(mem_pointer + 1, self.ram_len-1)
 				
-			if (instruction == "7"):
+			elif (instruction == "7"):
 				#SEL MEM / RAM
 				#Swaps between the RAM and the memory cell
 				#Uses the two variables to achieve the swap
 				mem_pointer, prev_mem_pointer = prev_mem_pointer, mem_pointer
 				
-			if (instruction in "89AB"):
+			elif (instruction in "89AB"):
 				#WHILE 0,1,2,3
 				#Gets the while value by converting to hexadecimal and subtracting 8 and the current memory value
 				while_val = int(instruction, 16) - 8
@@ -90,7 +96,7 @@ class EHRM:
 					#Adds the starting position and value to check to the stack
 					while_stack.append( [code_pointer, while_val] )
 					
-			if (instruction == "C"):
+			elif (instruction == "C"):
 				#ENDWHILE
 				#Jumps back to start if memory value is equal to while_value
 				cur_val = self.get_mem( mem_pointer )
@@ -101,23 +107,42 @@ class EHRM:
 				else:
 					while_stack.pop()
 			
-			if (instruction == "D"):
+			elif (instruction == "D"):
 				#INPUT
 				#Checks which mode I/O is in and does input accordingly
 				if (input_mode == "2B"):
 					#2 Bit Input
 					input_val = int( input("> ") ) % self.INSTRUCTION_LENGTH
 					self.set_mem( mem_pointer, input_val )
+				elif (input_mode == "ASCII"):
+					if (len(chars) == 0):
+						input_char_num = ord(input()[0])
+						chars = [input_char_num>>(x*2)&3 for x in range(4)]
+						self.set_mem( mem_pointer, chars.pop() )
+					else:
+						self.set_mem( mem_pointer, chars.pop() )
 					
-			if (instruction == "E"):
+			elif (instruction == "E"):
 				#OUTPUT
 				#Checks which mode I/O is in and does output accordingly
 				if (input_mode == "2B"):
 					#2 Bit Output
 					output_val = self.get_mem( mem_pointer )
 					print(output_val, end="")
+				elif (input_mode == "ASCII"):
+					chars_output.append( self.get_mem( mem_pointer ) )
+					if (len(chars_output) >= 4):
+						base_num = 0
+						for num in chars_output:
+							base_num = base_num << 2
+							base_num += num
+						print(chr(base_num), end="")
+					
+			elif (instruction == "F"):
+				#END PROGRAM
+				break
 				
-			if (instruction == "?"):
+			elif (instruction == "?"):
 				#Debugs program by printing the memory and RAM (first 10 values)
 				self.pprint()
 			
