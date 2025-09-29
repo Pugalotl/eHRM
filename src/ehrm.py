@@ -41,6 +41,9 @@ class EHRM:
 			
 			self.ram[pointer] = val
 			
+	def check_while_condition(self, instruction, ram, mem):
+		return (instruction == "8" and ram != 0) or (instruction == "9" and ram == 0) or (instruction == "A" and ram < mem) or (instruction == "B" and ram > mem)
+			
 	def run(self):
 		#Runs the program
 		#Each instruction's name is given below:
@@ -49,7 +52,7 @@ class EHRM:
 		#		4				5				6				7
 		#		SEL 0			SEL -1			SEL +1			SEL RAM/MEM
 		#		8				9				A				B
-		#		WHILE 0			WHILE !0		...				...
+		#		WHILE 0			WHILE !0		WHILE RAM<MEM	WHILE RAM>MEM
 		#		C				D				E				F
 		#		ENDWHILE		INPUT			OUTPUT			END PROGRAM
 		
@@ -95,11 +98,14 @@ class EHRM:
 				#Uses the two variables to achieve the swap
 				mem_pointer, prev_mem_pointer = prev_mem_pointer, mem_pointer
 				
-			elif (instruction in "89"):
+			elif (instruction in "89AB"):
 				#WHILE 0,!0
+				#WHILE RAM < MEM, WHILE RAM > MEM
 				cur_val = self.get_mem( mem_pointer )
+				mem_val = self.get_mem( -1 )
 				
-				if (instruction == "8" and cur_val != 0) or (instruction == "9" and cur_val == 0):
+				#Uses function to check all possible WHILE conditions
+				if self.check_while_condition(instruction, cur_val, mem_val):
 					#Finds the ENDWHILE block if the two values are not equal
 					while (self.script[code_pointer] != "C"):
 						code_pointer += 1
@@ -111,9 +117,10 @@ class EHRM:
 				#ENDWHILE
 				#Jumps back to start if memory value is equal to while_value
 				cur_val = self.get_mem( mem_pointer )
+				mem_val = self.get_mem( -1 )
 				
-				if (while_stack[-1][1] == "8" and cur_val == 0) or (while_stack[-1][1] == "9" and cur_val != 0):
-					#If current value is equal to while value, jump back to code pointer
+				if not self.check_while_condition(while_stack[-1][1], cur_val, mem_val):
+					#If the conditional is not true, jump back to code pointer
 					code_pointer = while_stack[-1][0]
 				else:
 					while_stack.pop()
@@ -126,6 +133,9 @@ class EHRM:
 					input_val = self.base_printable.index(input("")[0])
 					self.set_mem( mem_pointer, input_val )
 				elif (input_mode == "ASCII"):
+					#Ascii Input
+					#If character hasn't been inputted, take a character and split into 2 bit sections, setting memory to the lowest
+					#Otherwise, pop the next lowest 2 bit section into memory
 					if (len(chars) == 0):
 						input_char_num = ord(input()[0])
 						chars = [input_char_num>>(x*2)&3 for x in range(4)]
