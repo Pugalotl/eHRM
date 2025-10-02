@@ -1,9 +1,10 @@
 class EHRM:
-	def __init__(self, script, ram_len=100):
+	def __init__(self, script, ram_len=100, debug=False):
 		#Defines the code, RAM, memory and pointer
 		self.script = script.replace(" ","")
 		self.ram = [0] * ram_len
 		self.ram_len = ram_len
+		self.debug = debug
 		self.mem = 0
 		self.INSTRUCTION_LENGTH = 4
 		self.base_printable = self.gen_chars(script)
@@ -42,7 +43,7 @@ class EHRM:
 			self.ram[pointer] = val
 			
 	def check_while_condition(self, instruction, ram, mem):
-		return (instruction == "8" and ram != 0) or (instruction == "9" and ram == 0) or (instruction == "A" and ram < mem) or (instruction == "B" and ram > mem)
+		return (instruction == "8" and ram != 0) or (instruction == "9" and ram == 0) or (instruction == "A" and ram >= mem) or (instruction == "B" and ram <= mem)
 			
 	def run(self):
 		#Runs the program
@@ -52,7 +53,7 @@ class EHRM:
 		#		4				5				6				7
 		#		SEL 0			SEL -1			SEL +1			SEL RAM/MEM
 		#		8				9				A				B
-		#		WHILE 0			WHILE !0		WHILE RAM<MEM	WHILE RAM>MEM
+		#		WHILE 0			WHILE !0		WHILE CELL<MEM	WHILE CELL>MEM
 		#		C				D				E				F
 		#		ENDWHILE		INPUT			OUTPUT			END PROGRAM
 		
@@ -100,7 +101,7 @@ class EHRM:
 				
 			elif (instruction in "89AB"):
 				#WHILE 0,!0
-				#WHILE RAM < MEM, WHILE RAM > MEM
+				#WHILE CELL < MEM, WHILE CELL > MEM
 				cur_val = self.get_mem( mem_pointer )
 				mem_val = self.get_mem( -1 )
 				
@@ -168,6 +169,9 @@ class EHRM:
 				#Debugs program by printing the memory and RAM (first 10 values)
 				self.pprint()
 			
+			if (self.debug):
+				self.pprint()
+				input()
 			code_pointer += 1
 			
 		print()
